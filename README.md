@@ -1,5 +1,5 @@
 # repo_asur
 
-TEST TEST TEST
+СОЕДИНЕНИЕ УСТАНОВЛЕНО
 
 repo asur
