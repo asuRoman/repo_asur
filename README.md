@@ -53,6 +53,26 @@ sudo cp -r html/ html2
 
 sudo apt install prometheus-node-exporter (настройка не требуется)
 
+1.8 Установить на веб сервер filebeat для сбора логов из файла в репозитории filebeat_8.17.1_amd64-224190-a5f894.deb
+
+Команда: sudo dpkg -i /home/asur/filebeat_8.17.1_amd64-224190-a5f894.deb
+Скопировать конфигурационный файл filebeat.yml из репозитория в каталог /etc/filebeat/
+
+в конце filebeat.inputs: добавить 
+- type: filestream
+  paths:
+    - /var/log/nginx/*.log
+
+  enabled: true
+  exclude_files: ['.gz$']
+  prospector.scanner.exclude_files: ['.gz$']
+
+закоммитить все в Elasticsearch Output и добавить перед Logstash Output
+output.logstash:
+  hosts: ["localhost:5400"] - ip адрес сервера ELK
+
+Рестартануть sudo systemctl restart filebeat
+
 2. Установка и настройка MySql сервера + replica MySql
 
 На обеих хостовых машинах настроена сеть, заменены имена хостов на mysql-master - основной и replica - для репликации.
@@ -135,3 +155,114 @@ Connectiios > Data source > Prometheus > Connection (http://localhost:9090)
 
 Dashboards > New > Import > 1860 > Save > Import
 
+4. Установка и настройка стека ELK для логирования
+
+4.1 Установка Java на хост 
+
+Команда: sudo apt install default-jdk
+
+4.2 Установка elasticsearch на хост из файла в репозитории elasticsearch_8.17.1_amd64-224190-db972d.deb
+
+sudo dpkg -i /home/asur/elasticsearch_8.17.1_amd64-224190-db972d.deb
+
+4.3 Выставить лимит для java по потреблению оперативной памяти
+
+sudo cat > /etc/elasticsearch/jvm.options.d/jvm.options
+
+-Xms1g
+-Xmx1g
+
+4.4 Настраиваем конфиг elasticsearch (не безопасно, не работает с сертификатами)
+
+Скопировать конфигурационный файл elasticsearch.yml из репозитория в каталог /etc/elasticsearch
+
+Было:
+xpack.security.enabled: true
+xpack.security.enrollment.enabled: true
+xpack.security.http.ssl:
+enabled: true
+xpack.security.transport.ssl:
+enabled: true
+
+Стало:
+xpack.security.enabled: false
+xpack.security.enrollment.enabled: false
+xpack.security.http.ssl:
+enabled: false
+xpack.security.transport.ssl:
+enabled: false
+
+!!!Запускаем ELK
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now elasticsearch.service
+sudo systemctl start elasticsearch.service
+
+Проверка curl http://localhost:9200
+
+4.5 Установка kibana на хост из файла в репозитории kibana_8.17.1_amd64-224190-42bf22.deb
+
+Команда:  sudo dpkg -i /home/asur/kibana_8.17.1_amd64-224190-42bf22.deb
+Запускаем 
+sudo systemctl daemon-reload
+sudo systemctl enable --now kibana.service
+sudo systemctl start kibana.service
+
+Скопировать конфигурационный файл kibana.yml из репозитория в каталог /etc/kibana
+Разкомитить:
+server.port: 5601
+и заменить server.host: "localhost" на server.host: "0.0.0.0" чтобы заходить со всех хостов
+
+Перезапускаем сервис sudo systemctl restart kibana.service
+
+4.6 Установка logstash  на хост из файла в репозитории logstash_8.17.1_amd64-224190-40c12c.deb
+
+Запуск 
+
+sudo systemctl enable --now logstash.service
+sudo systemctl start logrotate.service
+
+Скопировать конфигурационный файл logstash.yml из репозитория в каталог /etc/logstash
+
+Добавить после # path.config: строчку path.config: /etc/logstash/conf.d отдельный файл для конфига который берется с NGINX
+
+Задаем параметры cat > /etc/logstash/conf.d/logstash-nginx-es.conf для перерабатывания файла из исходника filebeat в формат logstash
+input {
+    beats {
+        port => 5400
+    }
+}
+
+filter {
+ grok {
+   match => [ "message" , "%{COMBINEDAPACHELOG}+%{GREEDYDATA:extra_fields}"]
+   overwrite => [ "message" ]
+ }
+ mutate {
+   convert => ["response", "integer"]
+   convert => ["bytes", "integer"]
+   convert => ["responsetime", "float"]
+ }
+ date {
+   match => [ "timestamp" , "dd/MMM/YYYY:HH:mm:ss Z" ]
+   remove_field => [ "timestamp" ]
+ }
+ useragent {
+   source => "agent"
+ }
+}
+
+output {
+ elasticsearch {
+   hosts => ["http://localhost:9200"]
+   #cacert => '/etc/logstash/certs/http_ca.crt'
+   #ssl => true
+   index => "weblogs-%{+YYYY.MM.dd}"
+   document_type => "nginx_logs"
+ }
+ stdout { codec => rubydebug }
+}
+
+
+Перезапустить logstash 
+sudo systemctl restart logstash.service
