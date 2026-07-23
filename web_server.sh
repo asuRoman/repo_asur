@@ -23,7 +23,7 @@ cp -f /home/asur/repo_asur/html/siteb/index.html /var/www/html2/index.html
 #service apache2 reload
 #apt install -y prometheus-node-exporter
 #dpkg -i /home/asur/filebeat_8.17.1_amd64-224190-a5f894.deb
-cp -f /home/asur/repo_asur/html/filebeat.yml /etc/filebeat/filebeat.yml
+cp -f /home/asur/repo_asur/nginx/filebeat.yml /etc/filebeat/filebeat.yml
 systemctl restart nginx.service
 systemctl restart apache2.service
 systemctl restart filebeat
