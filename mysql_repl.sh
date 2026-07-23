@@ -6,6 +6,7 @@ apt update
 apt install mysql-server-8.0
 systemctl start mysql
 cp -f /home/asur/repo_asur/repl/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
+cp -f /home/asur/repo_asur/repl/.my.cnf /home/asur
 service mysql restart
 sudo mysql
 STOP REPLICA;
