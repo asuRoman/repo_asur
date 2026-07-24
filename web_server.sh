@@ -38,3 +38,4 @@ cp -f /home/asur/repo_asur/web/filebeat.yml /etc/filebeat/filebeat.yml
 systemctl restart nginx.service
 systemctl restart apache2.service
 systemctl restart filebeat
+echo "Скрипт выполнился успешно"
