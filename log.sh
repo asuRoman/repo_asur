@@ -20,6 +20,6 @@ cp -f /home/asur/repo_asur/log/kibana.yml /etc/kibana/kibana.yml
 systemctl restart kibana.service
 dpkg -i /home/asur/logstash_8.17.1_amd64-224190-40c12c.deb
 systemctl enable --now logstash.service
-systemctl start logrotate.service
+systemctl start logstash.service
 cp -f /home/asur/repo_asur/log/logstash.yml /etc/logstash/logstash.yml
 systemctl restart logstash.service
