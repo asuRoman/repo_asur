@@ -10,11 +10,12 @@ echo "Установка mysql успешно выполнилась"
 echo "Выполняется настройка конфигурационных файлов mysql"
 cp -f /home/asur/repo_asur/mysql/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
 systemctl restart mysql
-#mysql
+#mysql <<EOF
 echo "Выполняется создание пользователя для подключения с репликации"
 #CREATE USER repl@'%' IDENTIFIED WITH 'caching_sha2_password' BY '12131415';
 # выдать права на работу с репликацией
 echo "Выдаются права на работу с репликации"
 #GRANT REPLICATION SLAVE ON *.* TO repl@'%';
 #exit
+EOF
 echo "Скрипт выполнился успешно"
